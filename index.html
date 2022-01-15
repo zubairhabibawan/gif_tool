@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="index.css">
+    <script src="bootstrap.min.js"></script>
+    <script src="https://unpkg.com/konva@8.3.2/konva.min.js"></script>
+    <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
+</head>
+
+<body>
+    <button type="button" id="buttonToOpenModal" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" hidden>
+         hidden button
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="exampleModalMessage">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal ended  -->
+
+
+    <div class="d-flex justify-content-center">
+        <div class="d-flex justify-content-center content-wrapper">
+            <div class="d-flex flex-column col-wrapper-1">
+                <h2 id="toolTitle">
+                    Loafz Art Tool
+                </h2>
+                <br>
+                <div>
+                    <input id='fileUpload' onchange="showSelectedFile(this)" type='file' accept="image/png , image/gif , image/jpeg , image/jpg" hidden/>
+                    <button type="button" onclick="onUploadFile()" class="btn btn-sm btn-dark btn-style ">Upload your Apez</button>
+                </div>
+                <div>
+                    <span>PNG , GIF , JPEG files</span>
+                </div>
+                <br>
+                <div>
+                    <input id='backgroundUpload' onchange="showSelectedBackground(this)" type='file' accept="image/png , image/gif , image/jpeg , image/jpg" hidden/>
+                    <button type="button" onclick="onUploadBackground()" class="btn btn-sm btn-dark btn-style ">Upload Your Background</button>
+                </div>
+                <div>
+                    <span>PNG , GIF , JPEG files</span>
+                </div>
+                <br>
+                <div>
+                    <button type="button" class="btn btn-sm btn-dark btn-style ">Use our backgrounds</button>
+                </div>
+                <br>
+                <div class="d-flex">
+                    <div onclick="changeLayout('square')" id="squareDiv" class="layout-div square-div">
+                        <span>SQUARE</span>
+                    </div>
+                    <div onclick="changeLayout('banner')" id="bannerDiv" class="banner-div layout-div">
+                        <span>BANNER</span>
+                    </div>
+                </div>
+                <div>
+                    <span>Choose your layout</span>
+                </div>
+            </div>
+            <div class="d-flex flex-column align-items-center col-wrapper-2" id="colWrapper2">
+                <div class="d-flex label-wrapper" id="labelWrapper">
+                    <span onclick="changeLayout('square')" id="squareLabel">Square</span>
+                    <span onclick="changeLayout('banner')" id="bannerLabel">Banner</span>
+                </div>
+                <div id="image-container" class="image-container">
+                </div>
+                <br>
+                <div>
+                    <button type="button " class="btn btn-sm btn-dark ">Download your Art</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fileSizeLimit = 0.5 * 1024 * 1024
+        let backgroundSizeLimit = 0.5 * 1024 * 1024
+        let fileBase64 = null
+        let backgroundBase64 = null
+        let stage = new Konva.Stage({
+            container: 'image-container',
+            width: 180,
+            height: 180,
+        });
+        let layer = new Konva.Layer();
+        stage.add(layer);
+
+        function addlayers() {
+
+            if (fileBase64) {
+                let canvas = document.createElement('canvas');
+
+                function onDrawFrame(ctx, frame) {
+                    canvas.width = frame.width;
+                    canvas.height = frame.height;
+                    ctx.drawImage(frame.buffer, 0, 0);
+                    layer.draw();
+                }
+                gifler(fileBase64).frames(canvas, onDrawFrame);
+
+                let image = new Konva.Image({
+                    image: canvas,
+                    x: 0,
+                    y: 0,
+                    width: 180,
+                    height: 180
+                });
+                setTimeout(() => {
+                    layer.add(image);
+                }, 500)
+            }
+            if (backgroundBase64) {
+                let imageObj = new Image();
+                imageObj.onload = function() {
+                    let image0 = new Konva.Image({
+                        x: 0,
+                        y: 0,
+                        image: imageObj,
+                        width: 180,
+                        height: 180
+                    });
+                    layer.add(image0)
+                };
+                imageObj.src = backgroundBase64
+            }
+
+        }
+
+        function changeLayout(type) {
+
+            let colWrapper2 = document.getElementById('colWrapper2')
+            let imageParentDiv = document.getElementById('image-container')
+            let squareLabel = document.getElementById('squareLabel')
+            let bannerLabel = document.getElementById('bannerLabel')
+            let squareDiv = document.getElementById('squareDiv')
+            let bannerDiv = document.getElementById('bannerDiv')
+            let labelWrapper = document.getElementById('labelWrapper')
+            if (type == 'square') {
+                colWrapper2.style.width = '30%'
+                colWrapper2.style.minWidth = '300px'
+                imageParentDiv.style.width = '300px'
+                squareLabel.style.color = 'black'
+                bannerLabel.style.color = 'gray'
+                squareDiv.style.backgroundColor = 'lightgray'
+                bannerDiv.style.backgroundColor = 'white'
+                labelWrapper.style.width = '300px'
+            } else if (type == 'banner') {
+                colWrapper2.style.width = '50%'
+                colWrapper2.style.minWidth = '600px'
+                imageParentDiv.style.width = '600px'
+                squareLabel.style.color = 'gray'
+                bannerLabel.style.color = 'black'
+                squareDiv.style.backgroundColor = 'white'
+                bannerDiv.style.backgroundColor = 'lightgray'
+                labelWrapper.style.width = '600px'
+            }
+        }
+
+        function onUploadFile() {
+            let typeFile = document.getElementById('fileUpload')
+            typeFile.click()
+        }
+
+        function onUploadBackground() {
+            let typeFile = document.getElementById('backgroundUpload')
+            typeFile.click()
+        }
+
+        function showSelectedFile(fileParam) {
+            let file = fileParam.files[0];
+            if (file.type.startsWith('image') && +file.size <= fileSizeLimit) {
+                let reader = new FileReader();
+                reader.onloadend = function() {
+                    fileBase64 = reader.result
+                    addlayers()
+                }
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    fileBase64 = null
+                }
+            } else {
+                let titleDiv = document.getElementById('exampleModalLabel')
+                let MessageDiv = document.getElementById('exampleModalMessage')
+                let ModalButton = document.getElementById('buttonToOpenModal')
+                if (!file.type.startsWith('image')) {
+                    titleDiv.innerHTML = "Wrong File Selection"
+                    MessageDiv.innerHTML = " Please Choose GiF , PNG or JPEG  File Type"
+                    ModalButton.click()
+                } else if (file.size > fileSizeLimit) {
+                    titleDiv.innerHTML = "File Limit exceed"
+                    MessageDiv.innerHTML = "Please Choose less than 500 KB File"
+                    ModalButton.click()
+                }
+            }
+        }
+
+        function showSelectedBackground(fileParam) {
+            let file = fileParam.files[0];
+            if (file.type.startsWith('image') && +file.size <= fileSizeLimit) {
+                let reader = new FileReader();
+                reader.onloadend = function() {
+                    backgroundBase64 = reader.result
+                    addlayers()
+                }
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    backgroundBase64 = null
+                }
+            } else {
+                let titleDiv = document.getElementById('exampleModalLabel')
+                let MessageDiv = document.getElementById('exampleModalMessage')
+                let ModalButton = document.getElementById('buttonToOpenModal')
+                if (!file.type.startsWith('image')) {
+                    titleDiv.innerHTML = "Wrong File Selection"
+                    MessageDiv.innerHTML = " Please Choose GiF , PNG or JPEG  File Type"
+                    ModalButton.click()
+                } else if (file.size > fileSizeLimit) {
+                    titleDiv.innerHTML = "File Limit exceed"
+                    MessageDiv.innerHTML = "Please Choose less than 500 KB File"
+                    ModalButton.click()
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
