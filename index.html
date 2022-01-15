@@ -94,54 +94,101 @@
     <script>
         let fileSizeLimit = 0.5 * 1024 * 1024
         let backgroundSizeLimit = 0.5 * 1024 * 1024
+        let boxHeight = 180
+        let boxWidth = 180
         let fileBase64 = null
+        let isFileGif = true
+        let isBackgroundGif = false
         let backgroundBase64 = null
-        let stage = new Konva.Stage({
-            container: 'image-container',
-            width: 180,
-            height: 180,
-        });
-        let layer = new Konva.Layer();
-        stage.add(layer);
+        let stage = null
+        let layer = null
 
-        function addlayers() {
 
-            if (fileBase64) {
-                let canvas = document.createElement('canvas');
-
-                function onDrawFrame(ctx, frame) {
-                    canvas.width = frame.width;
-                    canvas.height = frame.height;
-                    ctx.drawImage(frame.buffer, 0, 0);
-                    layer.draw();
-                }
-                gifler(fileBase64).frames(canvas, onDrawFrame);
-
-                let image = new Konva.Image({
-                    image: canvas,
-                    x: 0,
-                    y: 0,
-                    width: 180,
-                    height: 180
-                });
-                setTimeout(() => {
-                    layer.add(image);
-                }, 500)
-            }
-            if (backgroundBase64) {
-                let imageObj = new Image();
-                imageObj.onload = function() {
-                    let image0 = new Konva.Image({
+        function getImage(src) {
+            return new Promise((resolve, reject) => {
+                let img = new Image()
+                resultImage = null
+                img.onload = () => {
+                    resultImage = new Konva.Image({
                         x: 0,
                         y: 0,
-                        image: imageObj,
-                        width: 180,
-                        height: 180
+                        image: img,
+                        width: boxWidth,
+                        height: boxHeight,
                     });
-                    layer.add(image0)
-                };
-                imageObj.src = backgroundBase64
+                    resolve(resultImage)
+                }
+                img.onerror = reject
+                img.src = src
+            })
+        }
+
+        function getAnimatedCanvas(src) {
+            let canvas = document.createElement('canvas');
+
+            function onDrawFrame(ctx, frame) {
+                canvas.width = frame.width;
+                canvas.height = frame.height;
+                ctx.drawImage(frame.buffer, 0, 0);
+                layer.draw();
             }
+            gifler(src).frames(canvas, onDrawFrame);
+            let image = new Konva.Image({
+                image: canvas,
+                x: 0,
+                y: 0,
+                width: boxWidth,
+                height: boxHeight,
+            });
+            return image
+        }
+
+        function drawLayers() {
+            stage = new Konva.Stage({
+                container: 'image-container',
+                width: boxWidth,
+                height: boxHeight,
+            });
+            layer = new Konva.Layer();
+            stage.add(layer);
+            if (fileBase64 && backgroundBase64) {
+                if (isFileGif) {
+                    getImage(backgroundBase64).then(image => {
+                        layer.add(image)
+                        layer.add(getAnimatedCanvas(fileBase64));
+                    })
+                } else {
+                    getImage(backgroundBase64).then(image => {
+                        layer.add(image)
+                        getImage(fileBase64).then(image => {
+                            layer.add(image)
+                        })
+                    })
+                }
+
+            } else {
+                if (fileBase64) {
+                    if (isFileGif) {
+                        let tempCanvas = getAnimatedCanvas(fileBase64)
+                        layer.add(tempCanvas);
+                    } else {
+                        getImage(fileBase64).then(image => {
+                            layer.add(image)
+                        })
+                    }
+                }
+                if (backgroundBase64) {
+                    if (isBackgroundGif) {
+                        let tempCanvas = getAnimatedCanvas(backgroundBase64)
+                        layer.add(tempCanvas);
+                    } else {
+                        getImage(backgroundBase64).then(image => {
+                            layer.add(image)
+                        })
+                    }
+                }
+            }
+
 
         }
 
@@ -163,6 +210,7 @@
                 squareDiv.style.backgroundColor = 'lightgray'
                 bannerDiv.style.backgroundColor = 'white'
                 labelWrapper.style.width = '300px'
+                boxWidth = 180
             } else if (type == 'banner') {
                 colWrapper2.style.width = '50%'
                 colWrapper2.style.minWidth = '600px'
@@ -172,7 +220,9 @@
                 squareDiv.style.backgroundColor = 'white'
                 bannerDiv.style.backgroundColor = 'lightgray'
                 labelWrapper.style.width = '600px'
+                boxWidth = 480
             }
+            drawLayers()
         }
 
         function onUploadFile() {
@@ -190,8 +240,13 @@
             if (file.type.startsWith('image') && +file.size <= fileSizeLimit) {
                 let reader = new FileReader();
                 reader.onloadend = function() {
+                    if (file.type === "image/gif") {
+                        isFileGif = true
+                    } else {
+                        isFileGif = false
+                    }
                     fileBase64 = reader.result
-                    addlayers()
+                    drawLayers()
                 }
                 if (file) {
                     reader.readAsDataURL(file);
@@ -219,8 +274,13 @@
             if (file.type.startsWith('image') && +file.size <= fileSizeLimit) {
                 let reader = new FileReader();
                 reader.onloadend = function() {
+                    if (file.type === "image/gif") {
+                        isBackgroundGif = true
+                    } else {
+                        isBackgroundGif = false
+                    }
                     backgroundBase64 = reader.result
-                    addlayers()
+                    drawLayers()
                 }
                 if (file) {
                     reader.readAsDataURL(file);
